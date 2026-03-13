@@ -1,8 +1,8 @@
-# Install script for directory: //home/mond/ProjectionBall
+# Install script for directory: D:/home/ryuji/git_work/ProjectionBallUnit/firm/ProjectionBall
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/usr/local")
+  set(CMAKE_INSTALL_PREFIX "C:/Program Files (x86)/ProjectionBall")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -34,12 +34,12 @@ endif()
 
 # Set default install directory permissions.
 if(NOT DEFINED CMAKE_OBJDUMP)
-  set(CMAKE_OBJDUMP "/usr/bin/arm-none-eabi-objdump")
+  set(CMAKE_OBJDUMP "C:/Users/ryuji/.pico-sdk/toolchain/13_2_Rel1/bin/arm-none-eabi-objdump.exe")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("//home/mond/ProjectionBall/build/pico-sdk/cmake_install.cmake")
+  include("D:/home/ryuji/git_work/ProjectionBallUnit/firm/ProjectionBall/build/pico-sdk/cmake_install.cmake")
 
 endif()
 
@@ -51,5 +51,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "//home/mond/ProjectionBall/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "D:/home/ryuji/git_work/ProjectionBallUnit/firm/ProjectionBall/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

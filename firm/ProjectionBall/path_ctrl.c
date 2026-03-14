@@ -23,8 +23,8 @@
 #include "rtc_rv8803.h"
 #include "rtc_sd30XX.h"
 #include "flash_ctrl.h"
-#ifdef ENABLE_FPGA_CMD
-#include "fpga_cmd.h"
+#ifdef ENABLE_EXT_CTRL
+#include "ext_ctrl.h"
 #endif
 
 #define REPEAT_NUM  5
@@ -145,12 +145,12 @@ void __time_critical_func(GetPathCmd)(int32_t *cmd0, int32_t *cmd1, bool *laser)
             }                     
             break;
 
-#ifdef ENABLE_FPGA_CMD
+#ifdef ENABLE_EXT_CTRL
         case MODE_EXTERNAL:
         {
             int16_t fx0, fx1;
             bool flsr;
-            if(FpgaCmdGetLatest(&fx0, &fx1, &flsr))
+            if(ExtCtrlGetLatest(&fx0, &fx1, &flsr))
             {
                 x0 = (int32_t)fx0;
                 x1 = (int32_t)fx1;

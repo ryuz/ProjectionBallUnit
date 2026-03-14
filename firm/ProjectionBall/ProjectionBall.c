@@ -26,8 +26,8 @@
 #include "path_ctrl.h"
 #include "flash_ctrl.h"
 #include "console.h"
-#ifdef ENABLE_FPGA_CMD
-#include "fpga_cmd.h"
+#ifdef ENABLE_EXT_CTRL
+#include "ext_ctrl.h"
 #endif
 
 
@@ -221,8 +221,8 @@ int main()
 
 	MotorCtrlInit();
 
-#ifdef ENABLE_FPGA_CMD
-	FpgaCmdInit();
+#ifdef ENABLE_EXT_CTRL
+	ExtCtrlInit();
 #endif
 
 #ifdef ENABLE_ENCODER_CHECK_MODE

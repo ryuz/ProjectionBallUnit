@@ -77,8 +77,8 @@
 
 //#define ENABLE_CALIBRATION_MODE
 
-/* FPGA External Coordinate Input via UART0 */
-#define ENABLE_FPGA_CMD
+/* External Coordinate Input via UART0 */
+#define ENABLE_EXT_CTRL
 
 
 #endif

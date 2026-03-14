@@ -1,5 +1,9 @@
 # 簡易レーザープロジェクタ ProjectionBall Unit
 
+> **このリポジトリは [meerstern/ProjectionBallUnit](https://github.com/meerstern/ProjectionBallUnit) を fork し、外部座標制御機能を追加した改変版です。**  
+> 原作者のオリジナルコードは MIT ライセンスのもと公開されています。本リポジトリの追加変更部分も同ライセンスに従います。  
+> **主な追加変更点:** バグ修正 (Flash初期化・volatile修飾子・タイマ競合)、UART 外部座標制御モード (mod=6) の追加。
+
 ## 概要 
   * ロボット制御技術を応用したガルバノスキャナ方式の簡易レーザープロジェクタです  
   * 文字や時刻、日時、内蔵図形を描画することが可能です  
@@ -16,7 +20,8 @@
   * 5V/0.8AのUSB電源(micro USB)で動作  
   * 電源LED(青)、エラーLED(オレンジ)を搭載  
   * 時刻(RTC)/設定データ一時保存用電池 CR1220  
-  * シリアルポートP1 ボーレート9600bps、データサイズ8bit、パリティ無、ストップ1bitが既定値
+  * シリアルポートP1 ボーレート9600bps、データサイズ8bit、パリティ無、ストップ1bitが既定値  
+  * **外部座標制御モード(mod=6)時は P1 を 1Mbps バイナリモードで使用** (後述)
   * サイズ60mm x60mm x 43mm(突起部、USBコネクタ除く)、固定穴45mm x45mm M3x4
 
 ## アプリケーション例
@@ -71,6 +76,7 @@
   * モード3: デジタル時計
   * モード4: デジタル日付
   * モード5: 任意メッセージ  
+  * **モード6: 外部座標制御 (UART バイナリパケット)** ← 追加  
 ※メッセージは英数字、最大5文字、それ以上はスクロール表示です  
 
 ## 描画例
@@ -109,6 +115,7 @@
 
 ※描画角は描画の上下左右等の角度を変更する場合に使用します  
 ※描画角のデフォルトは0度(deg=0)です  
+※モード6に設定すると外部座標制御モードになります（下記参照）  
 
 ### ユーザ設定コマンド  
 | コマンド名 | コマンド | 引数 | 例 | 
@@ -164,6 +171,88 @@
 <img src="img/img2.JPG" width="360">
 <img src="img/img3.JPG" width="360">
 <img src="img/img4.JPG" width="360">
+
+---
+
+## 外部座標制御モード (mod=6) ― 追加機能
+
+### 概要
+`mod=6` に設定すると、P1 端子 (UART0 RX, GPIO1) から送られるバイナリパケットで  
+レーザーの照射座標をリアルタイムに外部から制御できます。  
+FPGA・マイコン・PC など、1ms 周期でパケットを送信できる機器であれば何でも接続できます。  
+モード6 有効ビルドでは起動時に自動的にモード6 が選択されます。
+
+### 接続
+| 信号 | P1ピン | 方向 |
+|---|---|---|
+| UART0 RX (GPIO1) | P1-RX | 外部機器 TX → RP2040 |
+| GND | P1-GND | 共通GND |
+
+※ TX (GPIO0) は外部機器への返信には使用しません (接続不要)  
+※ 信号レベル 3.3V
+
+### パケットフォーマット
+
+ボーレート: **1,000,000 bps** (8N1)  
+フレーム長: **7バイト**  
+送信周期: 1ms 推奨 (最小取り込み遅延 < 100μs)
+
+```
+Byte  内容
+[0]   0xA5           同期バイト (固定)
+[1]   CMD0_H         X0座標 上位バイト (big-endian signed int16)
+[2]   CMD0_L         X0座標 下位バイト
+[3]   CMD1_H         X1座標 上位バイト (big-endian signed int16)
+[4]   CMD1_L         X1座標 下位バイト
+[5]   FLAGS          bit0 = レーザー ON(1) / OFF(0)、その他ビットは予約(0固定)
+[6]   CHECKSUM       [1]^[2]^[3]^[4]^[5] の XOR
+```
+
+### 座標系
+
+| 項目 | 説明 |
+|---|---|
+| 単位 | エンコーダカウント (14bit 分解能 0〜16383) |
+| 値の意味 | 中心 (キャリブレーション原点) からの **符号付きオフセット** |
+| 範囲の目安 | ±160 カウントが通常描画パターンの振れ幅に相当 |
+| X0 | モーター軸0 (X軸ミラー方向) |
+| X1 | モーター軸1 (Y軸ミラー方向) |
+
+`cen=` コマンドで設定したキャリブレーション原点と、`deg=` で設定した投影角度回転は mod=6 でも適用されます。
+
+### Python 送信サンプル
+
+```python
+import serial, struct, time, math
+
+SYNC = 0xA5
+
+def make_frame(cmd0: int, cmd1: int, laser: bool) -> bytes:
+    b1, b2 = struct.pack(">h", cmd0)
+    b3, b4 = struct.pack(">h", cmd1)
+    flags  = 0x01 if laser else 0x00
+    chk    = b1 ^ b2 ^ b3 ^ b4 ^ flags
+    return bytes([SYNC, b1, b2, b3, b4, flags, chk])
+
+with serial.Serial("COM3", 1_000_000, timeout=1) as ser:
+    for i in range(500):
+        angle = 2 * math.pi * i / 100
+        ser.write(make_frame(int(160 * math.cos(angle)),
+                             int(160 * math.sin(angle)),
+                             laser=True))
+        time.sleep(0.001)
+    ser.write(make_frame(0, 0, laser=False))
+```
+
+### ファームウェアビルド設定
+
+[ProjectionBall.h](firm/ProjectionBall/ProjectionBall.h) の下記マクロで機能を有効/無効にできます。
+
+```c
+#define ENABLE_EXT_CTRL   // コメントアウトで無効化 → 起動モードも元に戻る
+```
+
+---
 
 
   

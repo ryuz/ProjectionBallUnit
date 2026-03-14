@@ -22,8 +22,8 @@
 #include "console.h"
 #include "rtc_rv8803.h"
 #include "rtc_sd30XX.h"
-#ifdef ENABLE_FPGA_CMD
-#include "fpga_cmd.h"
+#ifdef ENABLE_EXT_CTRL
+#include "ext_ctrl.h"
 #endif
 
 
@@ -127,8 +127,8 @@ void ConsoleGetString()
 
 void OnUartRx()
 {
-#ifdef ENABLE_FPGA_CMD
-    FpgaCmdOnUartRx();
+#ifdef ENABLE_EXT_CTRL
+    ExtCtrlOnUartRx();
 #else
     while (uart_is_readable(UART_ID))
     {

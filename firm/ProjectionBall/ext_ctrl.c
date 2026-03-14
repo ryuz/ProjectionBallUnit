@@ -1,7 +1,7 @@
 /*
- *  	fpga_cmd.c
+ *  	ext_ctrl.c
  *
- *  FPGA external coordinate input via UART0
+ *  External coordinate input via UART0 (binary frame protocol)
  *
  *  Copyright (c) 2023
  *  K.Watanabe, Crescentt
@@ -14,29 +14,29 @@
 #include "pico/stdlib.h"
 #include "hardware/uart.h"
 #include "ProjectionBall.h"
-#include "fpga_cmd.h"
+#include "ext_ctrl.h"
 
 typedef struct {
     int16_t cmd0;
     int16_t cmd1;
     bool    laser;
-} FpgaCmdFrame_t;
+} ExtCtrlFrame_t;
 
 /* Ping-pong buffer: ISR writes to one slot, Core1 reads from the other */
-static volatile FpgaCmdFrame_t fpga_buf[2];
-static volatile uint8_t fpga_buf_latest = 0;
-static volatile bool    fpga_has_data = false;
+static volatile ExtCtrlFrame_t ext_buf[2];
+static volatile uint8_t ext_buf_latest = 0;
+static volatile bool    ext_has_data = false;
 
 /* ISR-local receive state */
-static uint8_t rx_frame[FPGA_FRAME_LEN];
+static uint8_t rx_frame[EXT_CTRL_FRAME_LEN];
 static uint8_t rx_idx = 0;
 
-void FpgaCmdInit(void)
+void ExtCtrlInit(void)
 {
-    uart_set_baudrate(UART_ID, FPGA_UART_BAUD);
+    uart_set_baudrate(UART_ID, EXT_CTRL_UART_BAUD);
 }
 
-void FpgaCmdOnUartRx(void)
+void ExtCtrlOnUartRx(void)
 {
     while (uart_is_readable(UART_ID))
     {
@@ -45,14 +45,14 @@ void FpgaCmdOnUartRx(void)
         if (rx_idx == 0)
         {
             /* Wait for sync byte */
-            if (byte == FPGA_SYNC_BYTE)
+            if (byte == EXT_CTRL_SYNC_BYTE)
                 rx_frame[rx_idx++] = byte;
         }
         else
         {
             rx_frame[rx_idx++] = byte;
 
-            if (rx_idx >= FPGA_FRAME_LEN)
+            if (rx_idx >= EXT_CTRL_FRAME_LEN)
             {
                 /* Verify XOR checksum (bytes 1..5) */
                 uint8_t chk = rx_frame[1] ^ rx_frame[2] ^ rx_frame[3]
@@ -61,13 +61,13 @@ void FpgaCmdOnUartRx(void)
                 if (chk == rx_frame[6])
                 {
                     /* Write to the inactive buffer slot */
-                    uint8_t wr = 1 - fpga_buf_latest;
-                    fpga_buf[wr].cmd0  = (int16_t)((rx_frame[1] << 8) | rx_frame[2]);
-                    fpga_buf[wr].cmd1  = (int16_t)((rx_frame[3] << 8) | rx_frame[4]);
-                    fpga_buf[wr].laser = (rx_frame[5] & 0x01) ? true : false;
+                    uint8_t wr = 1 - ext_buf_latest;
+                    ext_buf[wr].cmd0  = (int16_t)((rx_frame[1] << 8) | rx_frame[2]);
+                    ext_buf[wr].cmd1  = (int16_t)((rx_frame[3] << 8) | rx_frame[4]);
+                    ext_buf[wr].laser = (rx_frame[5] & 0x01) ? true : false;
                     /* Flip — reader now sees this slot */
-                    fpga_buf_latest = wr;
-                    fpga_has_data = true;
+                    ext_buf_latest = wr;
+                    ext_has_data = true;
                 }
                 rx_idx = 0;
             }
@@ -75,14 +75,14 @@ void FpgaCmdOnUartRx(void)
     }
 }
 
-bool FpgaCmdGetLatest(int16_t *cmd0, int16_t *cmd1, bool *laser)
+bool ExtCtrlGetLatest(int16_t *cmd0, int16_t *cmd1, bool *laser)
 {
-    if (!fpga_has_data)
+    if (!ext_has_data)
         return false;
 
-    uint8_t idx = fpga_buf_latest;
-    *cmd0  = fpga_buf[idx].cmd0;
-    *cmd1  = fpga_buf[idx].cmd1;
-    *laser = fpga_buf[idx].laser;
+    uint8_t idx = ext_buf_latest;
+    *cmd0  = ext_buf[idx].cmd0;
+    *cmd1  = ext_buf[idx].cmd1;
+    *laser = ext_buf[idx].laser;
     return true;
 }

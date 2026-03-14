@@ -51,7 +51,7 @@ enum
     MODE_WATCH,
     MODE_DATE,
     MODE_MSG,
-#ifdef ENABLE_FPGA_CMD
+#ifdef ENABLE_EXT_CTRL
     MODE_EXTERNAL,
 #endif
     MODE_NUM

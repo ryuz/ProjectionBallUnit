@@ -270,27 +270,33 @@ void RestoreUserData()
 {
    
     //Restore User Data from Flash
+    printf("[DBG] RestoreUserData: Flash read start\r\n");
     RestoreFlashUserData((uint8_t*)&settingData, sizeof(settingData));
     RestoreFlashCalibData((uint8_t*)&calibrationData, sizeof(calibrationData));
     x_cen0 = calibrationData.x_cen0;
     x_cen1 = calibrationData.x_cen1;
     resumeTime = settingData.resumeTime;
     pauseTime = settingData.pauseTime;
+    printf("[DBG] RestoreUserData: cen0=%d cen1=%d pause=%d resume=%d\r\n",
+        x_cen0, x_cen1, pauseTime, resumeTime);
     MotorCtrSetCenterPos(x_cen0, x_cen1);
-    //printf("Calibration value X:%d, Y:%d \r\n", settingData.x_cen0, settingData.x_cen1);
 
     if(strlen(settingData.userString)>0 && settingData.userString[0]!=0xFF)
         strcpy(PathString, settingData.userString);
     else
         strcpy(PathString, "Hello");  
+    printf("[DBG] RestoreUserData: str='%s'\r\n", PathString);
 
     //Pattern & Mode Data
     uint8_t udeg = 0;
     int32_t deg = 0;
+    printf("[DBG] RestoreUserData: GetRtcRam MODE start\r\n");
     GetRtcRam(MODE_SRAM, &SelectMode);
-    sleep_ms(1);		  
+    sleep_ms(1);
+    printf("[DBG] RestoreUserData: GetRtcRam PATTERN start\r\n");
     GetRtcRam(PATTERN_SRAM, &SelectPattern);
     sleep_ms(1);
+    printf("[DBG] RestoreUserData: mode=%d pattern=%d\r\n", SelectMode, SelectPattern);
 
     if( SelectMode >= MODE_NUM || SelectPattern >= PATTERN_NUM ) //RTC After Reset
     {
@@ -333,7 +339,10 @@ void UpdateHwRtc()
 	datetime_t dt = {0, 0, 0, 0, 0, 0, 0};
     GetRtcDateTime( (uint8_t*)&dt.year, (uint8_t*)&dt.month, (uint8_t*)&dt.day, (uint8_t*)&dt.hour, (uint8_t*)&dt.min, (uint8_t*)&dt.sec);
     dt.year = dt.year + 2000;
+	printf("[DBG] UpdateHwRtc: %d/%d/%d %d:%d:%d dotw=%d\r\n",
+		dt.year, dt.month, dt.day, dt.hour, dt.min, dt.sec, dt.dotw);
 	rtc_set_datetime(&dt);
+	printf("[DBG] rtc_set_datetime done\r\n");
 }
 
 void GetSettingCenterData(int32_t *xpos, int32_t *ypos)

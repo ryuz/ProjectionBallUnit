@@ -44,7 +44,7 @@ static void flashBlockRead(uint32_t blockAddr, uint8_t *rData, size_t rSize);
 void StoreFlashUserData(uint8_t *data, size_t size)
 {
     size_t wsize = (size>FLASH_WRITE_UNIT)?FLASH_WRITE_UNIT:size;
-    memcpy(buff, 0, FLASH_WRITE_UNIT);
+    memset(buff, 0, FLASH_WRITE_UNIT);
     memcpy(buff, data, wsize);
     flashBlockErase(FLASH_BLOCK30_ADDR);
     flashBlockWrite(FLASH_BLOCK30_ADDR, buff);
@@ -53,7 +53,7 @@ void StoreFlashUserData(uint8_t *data, size_t size)
 void StoreFlashCalibData(uint8_t *data, size_t size)
 {
     size_t wsize = (size>FLASH_WRITE_UNIT)?FLASH_WRITE_UNIT:size;
-    memcpy(buff, 0, FLASH_WRITE_UNIT);
+    memset(buff, 0, FLASH_WRITE_UNIT);
     memcpy(buff, data, wsize);
     flashBlockErase(FLASH_BLOCK31_ADDR);
     flashBlockWrite(FLASH_BLOCK31_ADDR, buff);
@@ -62,7 +62,7 @@ void StoreFlashCalibData(uint8_t *data, size_t size)
 void RestoreFlashUserData(uint8_t *data, size_t size)
 {
     size_t rsize = (size>FLASH_WRITE_UNIT)?FLASH_WRITE_UNIT:size;
-    memcpy(buff, 0, FLASH_WRITE_UNIT);
+    memset(buff, 0, FLASH_WRITE_UNIT);
     flashBlockRead(FLASH_BLOCK30_ADDR, buff, rsize);
     memcpy(data, buff, rsize);
 }
@@ -70,7 +70,7 @@ void RestoreFlashUserData(uint8_t *data, size_t size)
 void RestoreFlashCalibData(uint8_t *data, size_t size)
 {
     size_t rsize = (size>FLASH_WRITE_UNIT)?FLASH_WRITE_UNIT:size;
-    memcpy(buff, 0, FLASH_WRITE_UNIT);
+    memset(buff, 0, FLASH_WRITE_UNIT);
     flashBlockRead(FLASH_BLOCK31_ADDR, buff, rsize);
     memcpy(data, buff, rsize);
 }

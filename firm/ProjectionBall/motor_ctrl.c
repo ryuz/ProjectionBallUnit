@@ -48,9 +48,9 @@
 struct MotorCtrlStruct		motorControl[2];
 struct MotorLogStruct		motorLog[2][MAX_LOG_LEN];
 static uint					pwm_slice_num;
-volatile static uint 		InitCount;//Torque Limit for suppress runaway in start up
+volatile uint 				InitCount;//Torque Limit for suppress runaway in start up
 volatile static uint32_t	ControlCount;
-volatile static uint32_t 	ErrCount;
+volatile uint32_t 			ErrCount;
 volatile static bool		isPause = false;
 volatile static bool		isPause_old = false;
 volatile static int32_t 	kpGain;

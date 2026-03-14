@@ -51,8 +51,6 @@ struct MotorLogStruct
 };
 
 extern struct MotorCtrlStruct	motorControl[2];
-extern volatile uint			InitCount;
-extern volatile uint32_t		ErrCount;
 
 void MotorCtrlInit();
 void MotorCtrlLoop();

@@ -32,12 +32,7 @@ static semaphore_t 	sem;
 static volatile bool 		CtrlEventFlg = false;
 static volatile bool 		PathEventFlg = false;
 struct repeating_timer control_timer;
-struct repeating_timer path_timer;
-alarm_pool_t* 		core0Alarm;
 alarm_pool_t* 		core1Alarm;
-volatile uint32_t	loop_max_us = 0;
-
-static uint32_t ctrl_overrun_count = 0;
 
 static volatile uint32_t path_timer_cnt = 0;
 #define PATH_TIMER_PERIOD 4000  // 80us * 4000 = 320ms
@@ -46,11 +41,6 @@ bool control_timer_callback(struct repeating_timer *t)
 {    
 	if(CtrlEventFlg == false)
 		CtrlEventFlg = true;
-	else
-	{
-		ctrl_overrun_count++;
-		// Debug: count only, don't stop — measure actual timing first
-	}
 
 	// Software path timer (driven from Core1 timer)
 	path_timer_cnt++;
@@ -74,9 +64,8 @@ void core1_main()
 	MotorCtrlLoop(); // first call to warm up code cache (XIP)
 
 	core1Alarm = alarm_pool_create(1, 4);
-	//irq_set_priority(0,0x00);
 	alarm_pool_add_repeating_timer_us(core1Alarm, 80, control_timer_callback, NULL, &control_timer);//80us
-	watchdog_enable(100, 1);// 100ms timeout for debug
+	watchdog_enable(100, 1);
 	//Control Loop
 	while (true)
     {
@@ -84,11 +73,8 @@ void core1_main()
 		if( CtrlEventFlg == true )
 		{
 			CtrlEventFlg = false;
-			uint32_t t0 = time_us_32();
 			MotorCtrlLoop();
 			UpdateUserButton();
-			uint32_t elapsed = time_us_32() - t0;
-			if(elapsed > loop_max_us) loop_max_us = elapsed;
 			if( IsResetEnable()==false)
 				watchdog_update();							
 		}
@@ -98,22 +84,13 @@ void core1_main()
 void core0_main()
 {	
 
-	printf("[DBG] core0_main started, waiting for PathEventFlg...\r\n");
-	uint32_t idle_count = 0;
 	while (true)
 	{
-		idle_count++;
-		if(idle_count % 1000000 == 0)
-			printf("[DBG] core0 polling... PathEventFlg=%d idle=%d\r\n", PathEventFlg, idle_count/1000000);
 		
 		if( PathEventFlg == true)
 		{
 			PathEventFlg = false;
-			PathCtrlLoop();
-			printf("[ALIVE] err0=%d err1=%d stby=%d lsr=%d init=%d errcnt=%d maxus=%d overrun=%d\r\n",
-				motorControl[0].x_err, motorControl[1].x_err,
-				gpio_get(PIN_STBY), gpio_get(PIN_LSR),
-				InitCount, ErrCount, loop_max_us, ctrl_overrun_count);
+			PathCtrlLoop();				
 			ConsoleGetString();
 #ifdef ENABLE_DEBUG_OUTPUT
 			DebugMotorCtrl();
@@ -216,21 +193,19 @@ int main()
     	
 	stdio_init_all();
 
-	// Debug: USB CDC接続待ち (ERR LEDが点滅する間にCOMポートを開く)
-	gpio_init(PIN_ERR);
-	gpio_set_dir(PIN_ERR, GPIO_OUT);
-	while (!stdio_usb_connected()) {
-		gpio_put(PIN_ERR, 1);
-		sleep_ms(250);
-		gpio_put(PIN_ERR, 0);
-		sleep_ms(250);
-	}
-	sleep_ms(500);
-	printf("=== USB Connected ===\r\n");
+	// USB CDC接続待ち (ERR LEDが点滅する間にCOMポートを開く)
+	// gpio_init(PIN_ERR);
+	// gpio_set_dir(PIN_ERR, GPIO_OUT);
+	// while (!stdio_usb_connected()) {
+	// 	gpio_put(PIN_ERR, 1);
+	// 	sleep_ms(250);
+	// 	gpio_put(PIN_ERR, 0);
+	// 	sleep_ms(250);
+	// }
+	// sleep_ms(500);
 
 	sem_init(&sem, 1, 1);	
 	ioInit();
-	printf("[DBG] ioInit done\r\n");
 
 #ifdef ENABLE_FLASH_TEST
 	TestFlashReadWrite();
@@ -238,13 +213,10 @@ int main()
 
 	if(watchdog_caused_reboot())
 	{
-		printf("[DBG] *** Watchdog caused reboot! ***\r\n");
 		sleep_ms(1000);			
 	}
 
-	printf("[DBG] MotorCtrlInit start\r\n");
 	MotorCtrlInit();
-	printf("[DBG] MotorCtrlInit done\r\n");
 
 #ifdef ENABLE_ENCODER_CHECK_MODE
 	uint16_t encVal0, encVal1;
@@ -268,17 +240,12 @@ int main()
 	GetDateTime();
 
 	//Update HW RTC
-	printf("[DBG] UpdateHwRtc start\r\n");
 	UpdateHwRtc();
-	printf("[DBG] RestoreUserData start\r\n");
 	RestoreUserData();
-	printf("[DBG] RestoreUserData done\r\n");
 	ClearBuffer();
 	sleep_ms(500);	
 
-	printf("[DBG] Launching Core1...\r\n");
 	multicore_launch_core1(core1_main);		
-	printf("[DBG] Core1 launched, entering core0_main\r\n");
 	core0_main();
 
     return 0;

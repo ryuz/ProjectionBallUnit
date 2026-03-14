@@ -51,6 +51,9 @@ enum
     MODE_WATCH,
     MODE_DATE,
     MODE_MSG,
+#ifdef ENABLE_FPGA_CMD
+    MODE_EXTERNAL,
+#endif
     MODE_NUM
 };
 

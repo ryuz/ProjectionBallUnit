@@ -53,6 +53,7 @@ target_sources(ProjectionBall PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/path_font.c
         ${CMAKE_CURRENT_LIST_DIR}/flash_ctrl.c
         ${CMAKE_CURRENT_LIST_DIR}/console.c
+        ${CMAKE_CURRENT_LIST_DIR}/fpga_cmd.c
         )
 
 pico_set_program_name(ProjectionBall "ProjectionBall")

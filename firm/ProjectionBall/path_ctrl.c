@@ -23,6 +23,9 @@
 #include "rtc_rv8803.h"
 #include "rtc_sd30XX.h"
 #include "flash_ctrl.h"
+#ifdef ENABLE_FPGA_CMD
+#include "fpga_cmd.h"
+#endif
 
 #define REPEAT_NUM  5
 #define IN_POS_MAX  48
@@ -141,6 +144,21 @@ void __time_critical_func(GetPathCmd)(int32_t *cmd0, int32_t *cmd1, bool *laser)
                 getStringPath(PathString, &string_cnt, &step, &allstep, &x0, &x1, &lsr);   
             }                     
             break;
+
+#ifdef ENABLE_FPGA_CMD
+        case MODE_EXTERNAL:
+        {
+            int16_t fx0, fx1;
+            bool flsr;
+            if(FpgaCmdGetLatest(&fx0, &fx1, &flsr))
+            {
+                x0 = (int32_t)fx0;
+                x1 = (int32_t)fx1;
+                lsr = flsr;
+            }
+            break;
+        }
+#endif
 
         default:
             break;

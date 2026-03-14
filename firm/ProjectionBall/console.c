@@ -22,6 +22,9 @@
 #include "console.h"
 #include "rtc_rv8803.h"
 #include "rtc_sd30XX.h"
+#ifdef ENABLE_FPGA_CMD
+#include "fpga_cmd.h"
+#endif
 
 
 
@@ -124,6 +127,9 @@ void ConsoleGetString()
 
 void OnUartRx()
 {
+#ifdef ENABLE_FPGA_CMD
+    FpgaCmdOnUartRx();
+#else
     while (uart_is_readable(UART_ID))
     {
         uartBuffer[uartBuffer_index]=uart_getc(UART_ID);
@@ -134,6 +140,7 @@ void OnUartRx()
             hasUartData = true;
         }
     }
+#endif
 }
 
 void ClearBuffer()

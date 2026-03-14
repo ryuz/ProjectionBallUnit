@@ -26,6 +26,9 @@
 #include "path_ctrl.h"
 #include "flash_ctrl.h"
 #include "console.h"
+#ifdef ENABLE_FPGA_CMD
+#include "fpga_cmd.h"
+#endif
 
 
 static semaphore_t 	sem;
@@ -217,6 +220,10 @@ int main()
 	}
 
 	MotorCtrlInit();
+
+#ifdef ENABLE_FPGA_CMD
+	FpgaCmdInit();
+#endif
 
 #ifdef ENABLE_ENCODER_CHECK_MODE
 	uint16_t encVal0, encVal1;

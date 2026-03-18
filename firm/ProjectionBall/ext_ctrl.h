@@ -24,6 +24,11 @@
 #define EXT_CTRL_SYNC_BYTE  0xA5
 #define EXT_CTRL_FRAME_LEN  7
 
+/* Max coordinate change per 80us control cycle (slew-rate limiter)
+ * 24 counts/cycle = 300,000 counts/sec
+ * Full-range jump (320 counts) ramps in ~1.1ms */
+#define EXT_CTRL_SLEW_MAX   24
+
 /* Call once after ioInit() to reconfigure UART for external control mode */
 void ExtCtrlInit(void);
 

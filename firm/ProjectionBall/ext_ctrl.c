@@ -31,6 +31,10 @@ static volatile bool    ext_has_data = false;
 static uint8_t rx_frame[EXT_CTRL_FRAME_LEN];
 static uint8_t rx_idx = 0;
 
+/* Slew-rate limiter state (updated every 80us from Core1) */
+static int16_t slew_cur0 = 0;
+static int16_t slew_cur1 = 0;
+
 void ExtCtrlInit(void)
 {
     uart_set_baudrate(UART_ID, EXT_CTRL_UART_BAUD);
@@ -75,14 +79,28 @@ void ExtCtrlOnUartRx(void)
     }
 }
 
+static inline int16_t slew_step(int16_t cur, int16_t tgt)
+{
+    int32_t diff = (int32_t)tgt - (int32_t)cur;
+    if (diff > EXT_CTRL_SLEW_MAX)
+        return cur + EXT_CTRL_SLEW_MAX;
+    else if (diff < -EXT_CTRL_SLEW_MAX)
+        return cur - EXT_CTRL_SLEW_MAX;
+    else
+        return tgt;
+}
+
 bool ExtCtrlGetLatest(int16_t *cmd0, int16_t *cmd1, bool *laser)
 {
     if (!ext_has_data)
         return false;
 
     uint8_t idx = ext_buf_latest;
-    *cmd0  = ext_buf[idx].cmd0;
-    *cmd1  = ext_buf[idx].cmd1;
+    /* Smoothly track target via slew-rate limiter */
+    slew_cur0 = slew_step(slew_cur0, ext_buf[idx].cmd0);
+    slew_cur1 = slew_step(slew_cur1, ext_buf[idx].cmd1);
+    *cmd0  = slew_cur0;
+    *cmd1  = slew_cur1;
     *laser = ext_buf[idx].laser;
     return true;
 }
